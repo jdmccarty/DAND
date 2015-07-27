@@ -1,0 +1,96 @@
+---
+title: 'Data Analyst Nano-Degree: Project1'
+author: "Justin McCarty"
+date: "July 12, 2015"
+output: html_document
+---
+
+## Background Information:
+
+In a Stroop task, participants are presented with a list of words, with each word displayed in a color of ink. The participant’s task is to say out loud the color of the ink in which the word is printed. The task has two conditions: a congruent words condition, and an incongruent words condition. In the congruent words condition, the words being displayed are color words whose names match the colors in which they are printed: for example RED, BLUE. In the incongruent words condition, the words displayed are color words whose names do not match the colors in which they are printed: for example PURPLE, ORANGE. In each case, we measure the time it takes to name the ink colors in equally-sized lists. Each participant will go through and record a time from each condition. *(The color words RED, BLUE were to show up in their actual coloring while PURPLE and ORANGE were to show up as the wrong color, but I was unable to get the font classes set appropriately)*
+
+## Questions For Investigation
+
+As a general note, be sure to keep a record of any resources that you use or refer to in the creation of your project. You will need to report your sources as part of the project submission.
+
+1. What is our independent variable? What is our dependent variable?
+    + *The independent variable is the word condition, being either congruent or incongruent.  The dependent variable is the time taken to name the ink colors in equally-sized lists.*
+
+2. What is an appropriate hypothesis for this task? What kind of statistical test do you expect to perform? Justify your choices.
+    + *As we begin to analyze the data, we will approach with a set of hypotheses a __null hypothesis__ and an __alternate hypothesis__.*
+    + *__null hypothesis__: that the word condition has no effect on the response time.  Specifically, H0: Mean difference in time taken is 0.*  
+    + *__alternate hypothesis__: HA: The sample means are not equal.*
+    + *Since we have one population and two conditions, we will use a __Paried Samples T-Test__ to uncover any effects the different conditions may have on the population.*
+
+Now it’s your chance to try out the Stroop task for yourself. Go to this [link](https://www.google.com/url?q=https%3A%2F%2Ffaculty.washington.edu%2Fchudler%2Fjava%2Fready.html&sa=D&sntz=1&usg=AFQjCNGc_1cOHZy4iwBhM93xXvCImuQ1sQ), which has a Java-based applet for performing the Stroop task. Record the times that you received on the task (you do not need to submit your times to the site.) 
+
+Now, download this [dataset](https://drive.google.com/file/d/0B9Yf01UaIbUgQjFQZ3hNbUFRQk0/view?usp=sharing) which contains results from a number of participants in the task. Each row of the dataset contains the performance for one participant, with the first number their results on the congruent task and the second number their performance on the incongruent task.
+
+```{r}
+# import the stroop dataset 
+stroop <- read.csv("stroopdata.csv", sep = ",")
+# check the first few rows to make sure we have everything we need
+head(stroop)
+```
+    
+```{r}
+# Using a Paired Samples T-Test assumes a normal distribution, adding a simple histogram to verify:
+# Result is a bit "chunky" but I think we can work with it
+library(ggplot2)
+ggplot(aes(x = Congruent), data = stroop) + 
+  geom_histogram(binwidth = 1.5) + 
+  theme_classic()
+```
+
+3. Report some descriptive statistics regarding this dataset. Include at least one measure of central tendency and at least one measure of variability.
+
+```{r}
+# running the basic summary will give us the mean and median (central tendency) 
+# as well as the 1st and 3rd quartiles used to calculate the IQR (variability).  
+summary(stroop)
+
+# IQR
+IQR(stroop$Congruent) 
+#vs. 
+IQR(stroop$Incongruent)
+
+# a visualization of the box plot differences is probably helpful here:
+boxplot(stroop$Congruent, 
+        stroop$Incongruent, 
+        names = c('Congruent', 'Incongruent'),
+        main = "Boxplot Comparison")
+```
+  
+  + *The boxplot illustrates the difference in both the IQR and Means of both samples.*
+  
+4. Provide one or two visualizations that show the distribution of the sample data. Write one or two sentences noting what you observe about the plot or plots.
+```{r}
+# We have seen the Congruent distribution, as well as a box plot comparison.  
+# I expect we will have a normal distribution for Incongruent as well with a 
+# longer right tail based on the boxplot, but let's see! (also learning to graph together)
+hist(stroop$Congruent, xlim = c(5,40), breaks = 7, col=rgb(1,1,0,0.5), 
+     main = "Distribution of Congruent (Yellow) vs. Incongruent (Blue)", xlab = 'Time (in Seconds)')
+par(new=TRUE)
+hist(stroop$Incongruent, xlim = c(5,40), breaks = 7, col=rgb(0,1,1,0.5), main = "", xlab = "")
+
+# Another plot that could be useful is a scatter plot with a 45 degree line:
+plot(stroop$Congruent, stroop$Incongruent, main = "Scatter w/ AB Line", xlim = c(0,40), ylim = c(0,40))
+abline(a=0, b=1)
+```
+
+  + *The overlayed distributions show that both distributions are similarly shaped (normal) and the Incongruent is shifted to the right (taking longer)*
+  + *Plotting the points against a AB line (line with a slope of 1) shows that each subject actually took longer with the Incongruent condition as each point is above the line.  (As an example, if each subject performed exactly the same, all points would be on the line)*
+  + *There is certainly a difference in the appearance of the distributions, with the Incongruent condition taking longer.  In the next section we will show some statistics around the certainty and magnitude of these apparent differences*
+
+5. Now, perform the statistical test and report your results. What is your confidence level and your critical statistic value? Do you reject the null hypothesis or fail to reject it? Come to a conclusion in terms of the experiment task. Did the results match up with your expectations?
+```{r}
+# H0: Mean difference in time taken is 0:
+t.test(stroop$Congruent, stroop$Incongruent, mu=0, alt="two.sided", paired = TRUE, conf.level = 0.99)
+```
+
+*__The P value is less than 0.0001. By conventional criteria, this difference is considered to be extremely statistically significant. Therefore, we can comfortably reject the null and accept the alternative hypothesis that the word condition does affect the time taken to complete the exercise.__*
+
+6. Optional: What do you think is responsible for the effects observed? Can you think of an alternative or similar task that would result in a similar effect? Some research about the problem will be helpful for thinking about these two questions!
+    + *In my opinion, the brain is quickly interpreting data as soon as we see it, causing the subject to put much more effort and concentration into the task using the Incongruent condition.*  
+    + *In looking through the [Wikepedia](https://en.wikipedia.org/wiki/Stroop_effect#Numerical) on the Stroop Effect, I read about a similar effect with numbers and related size impression that would be interesting to learn more about!*
+
